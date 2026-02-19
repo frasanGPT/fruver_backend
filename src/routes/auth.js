@@ -1,6 +1,7 @@
 // src/routes/auth.js
 
 import { Router } from "express";
+import bcrypt from "bcryptjs";
 import Usuario from "../models/Usuario.js";
 import { signToken, assertJwtReady } from "../config/jwt.js";
 
@@ -32,7 +33,7 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    const isMatch = await usuario.comparePassword(password);
+    const isMatch = await bcrypt.compare(password, usuario.password);
 
     if (!isMatch) {
       return res.status(400).json({
