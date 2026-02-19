@@ -122,6 +122,8 @@ router.get("/dev-token", (_req, res) => {
 /* =========================
    REGISTER
 ========================= */
+
+
 router.post(
   "/register",
   requireAuth,
@@ -139,15 +141,17 @@ router.post(
         });
       }
 
-      // Evitar que el admin cree otro usuario con su mismo email
-      if (email.toLowerCase() === req.user.email?.toLowerCase()) {
+      const emailNormalizado = email.toLowerCase();
+
+      // Evitar registro con mismo email del admin autenticado
+      if (req.user?.email && emailNormalizado === req.user.email.toLowerCase()) {
         return res.status(400).json({
           ok: false,
           error: "No puedes registrarte nuevamente con tu propio email",
         });
       }
 
-      const existe = await Usuario.findOne({ email });
+      const existe = await Usuario.findOne({ email: emailNormalizado });
 
       if (existe) {
         return res.status(400).json({
@@ -156,9 +160,20 @@ router.post(
         });
       }
 
+      // 🔐 Impedir crear más de un admin en el sistema
+      if (rol === "admin") {
+        const yaExisteAdmin = await Usuario.findOne({ rol: "admin" });
+        if (yaExisteAdmin) {
+          return res.status(403).json({
+            ok: false,
+            error: "Ya existe un administrador en el sistema",
+          });
+        }
+      }
+
       const nuevoUsuario = new Usuario({
         nombre,
-        email,
+        email: emailNormalizado,
         password,
         rol: rol || "vendedor",
       });
@@ -183,6 +198,7 @@ router.post(
     }
   }
 );
+
 
 
 
