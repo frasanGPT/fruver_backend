@@ -1,16 +1,10 @@
 // src/routes/usuarios.js
 
-import {
-  Router
-} from "express";
+import { Router } from "express";
 import mongoose from "mongoose";
 import Usuario from "../models/Usuario.js";
-import {
-  requireAuth
-} from "../middlewares/auth.js";
-import {
-  requireRole
-} from "../middlewares/roles.js";
+import { requireAuth } from "../middlewares/auth.js";
+import { requireRole } from "../middlewares/roles.js";
 import AuditLog from "../models/AuditLog.js";
 
 const router = Router();
@@ -32,20 +26,17 @@ router.get(
   requireRole(["admin", "supervisor"]),
   async (req, res) => {
     try {
-      const usuarios = await Usuario.find({
-          activo: true
-        })
+      const usuarios = await Usuario.find({ activo: true })
         .select("-password")
-        .sort({
-          createdAt: -1
-        });
+        .sort({ createdAt: -1 });
 
       res.json({
         ok: true,
         count: usuarios.length,
         data: usuarios,
       });
-    } catch {
+    } catch (err) {
+      console.error("GET USERS ERROR:", err);
       res.status(500).json({
         ok: false,
         error: "Error al obtener usuarios",
@@ -63,12 +54,7 @@ router.post(
   requireRole("admin"),
   async (req, res) => {
     try {
-      const {
-        nombre,
-        email,
-        password,
-        rol
-      } = req.body;
+      const { nombre, email, password, rol } = req.body;
 
       const nuevo = new Usuario({
         nombre,
@@ -80,19 +66,23 @@ router.post(
       await nuevo.save();
 
       // 📌 Auditoría
-      const ejecutor = await Usuario.findById(req.user.id);
+      try {
+        const ejecutor = await Usuario.findById(req.user.id).select("+email");
 
-      await AuditLog.create({
-        usuarioId: ejecutor._id,
-        usuarioEmail: ejecutor.email,
-        accion: "CREAR_USUARIO",
-        entidad: "Usuario",
-        entidadId: nuevo._id.toString(),
-        metadata: {
-          creadoRol: nuevo.rol,
-        },
-        ip: req.ip,
-      });
+        await AuditLog.create({
+          usuarioId: ejecutor._id,
+          usuarioEmail: ejecutor.email,
+          accion: "CREAR_USUARIO",
+          entidad: "Usuario",
+          entidadId: nuevo._id.toString(),
+          metadata: {
+            creadoRol: nuevo.rol,
+          },
+          ip: req.ip,
+        });
+      } catch (err) {
+        console.error("AUDIT CREATE ERROR:", err);
+      }
 
       res.status(201).json({
         ok: true,
@@ -104,6 +94,7 @@ router.post(
         },
       });
     } catch (err) {
+      console.error("CREATE USER ERROR:", err);
       res.status(500).json({
         ok: false,
         error: err.message,
@@ -121,9 +112,7 @@ router.patch(
   requireRole("admin"),
   async (req, res) => {
     try {
-      const {
-        id
-      } = req.params;
+      const { id } = req.params;
 
       if (!isValidObjectId(id)) {
         return res.status(400).json({
@@ -132,10 +121,7 @@ router.patch(
         });
       }
 
-      const {
-        rol,
-        activo
-      } = req.body;
+      const { rol, activo } = req.body;
 
       const usuario = await Usuario.findById(id);
       if (!usuario) {
@@ -170,7 +156,8 @@ router.patch(
           activo: usuario.activo,
         },
       });
-    } catch {
+    } catch (err) {
+      console.error("PATCH USER ERROR:", err);
       res.status(500).json({
         ok: false,
         error: "Error al actualizar usuario",
@@ -188,9 +175,7 @@ router.delete(
   requireRole("admin"),
   async (req, res) => {
     try {
-      const {
-        id
-      } = req.params;
+      const { id } = req.params;
 
       if (!isValidObjectId(id)) {
         return res.status(400).json({
@@ -233,23 +218,30 @@ router.delete(
       await usuario.save();
 
       // 📌 Auditoría
-      await AuditLog.create({
-        usuarioId: req.user.id,
-        usuarioEmail: req.user.email || "admin",
-        accion: "DESACTIVAR_USUARIO",
-        entidad: "Usuario",
-        entidadId: usuario._id.toString(),
-        metadata: {
-          rol: usuario.rol,
-        },
-        ip: req.ip,
-      });
+      try {
+        const ejecutor = await Usuario.findById(req.user.id).select("+email");
+
+        await AuditLog.create({
+          usuarioId: ejecutor._id,
+          usuarioEmail: ejecutor.email,
+          accion: "DESACTIVAR_USUARIO",
+          entidad: "Usuario",
+          entidadId: usuario._id.toString(),
+          metadata: {
+            rol: usuario.rol,
+          },
+          ip: req.ip,
+        });
+      } catch (err) {
+        console.error("AUDIT DELETE ERROR:", err);
+      }
 
       res.json({
         ok: true,
         message: "Usuario desactivado correctamente",
       });
     } catch (err) {
+      console.error("DELETE USER ERROR:", err);
       res.status(500).json({
         ok: false,
         error: err.message,
