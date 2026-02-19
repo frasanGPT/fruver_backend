@@ -132,7 +132,12 @@ router.post(
     try {
       assertJwtReady();
 
-      const { nombre, email, password, rol } = req.body;
+      const {
+        nombre,
+        email,
+        password,
+        rol
+      } = req.body;
 
       if (!nombre || !email || !password) {
         return res.status(400).json({
@@ -151,7 +156,9 @@ router.post(
         });
       }
 
-      const existe = await Usuario.findOne({ email: emailNormalizado });
+      const existe = await Usuario.findOne({
+        email: emailNormalizado
+      });
 
       if (existe) {
         return res.status(400).json({
@@ -162,14 +169,18 @@ router.post(
 
       // 🔐 Impedir crear más de un admin en el sistema
       if (rol === "admin") {
-        const yaExisteAdmin = await Usuario.findOne({ rol: "admin" });
-        if (yaExisteAdmin) {
+        const totalAdmins = await Usuario.countDocuments({
+          rol: "admin"
+        });
+
+        if (totalAdmins >= 1) {
           return res.status(403).json({
             ok: false,
             error: "Ya existe un administrador en el sistema",
           });
         }
       }
+
 
       const nuevoUsuario = new Usuario({
         nombre,
