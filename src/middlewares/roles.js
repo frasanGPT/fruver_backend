@@ -1,4 +1,4 @@
-export function requireRole(rolesPermitidos = []) {
+export function requireRole(...rolesPermitidos) {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ ok: false, error: "No autenticado" });
