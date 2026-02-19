@@ -23,24 +23,24 @@ app.get("/", (_req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/usuarios", usuariosRoutes);
 
-// Puerto SIEMPRE primero (Render necesita que el servidor escuche inmediatamente)
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en puerto ${PORT}`);
-});
-
-// Conexión a Mongo después de levantar el servidor
 if (!process.env.MONGODB_URI) {
   console.error("MONGODB_URI no está definida");
   process.exit(1);
 }
 
+const PORT = process.env.PORT || 3000;
+
+// 🔥 Conectar primero a Mongo y luego levantar servidor
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => {
     console.log("MongoDB conectado");
+
+    app.listen(PORT, () => {
+      console.log(`Servidor corriendo en puerto ${PORT}`);
+    });
   })
   .catch((err) => {
     console.error("Error conectando MongoDB:", err);
+    process.exit(1);
   });
