@@ -18,7 +18,7 @@ router.use(requireAuth);
 
 router.get(
   "/",
-  requireRole(["admin", "supervisor"]),
+  requireRole(["admin","supervisor"]),
   async (req, res) => {
     try {
       const usuarios = await Usuario.find({ activo: true })
