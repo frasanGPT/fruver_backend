@@ -5,7 +5,7 @@ import mongoose from "mongoose";
 import Usuario from "../models/Usuario.js";
 import { requireAuth } from "../middlewares/auth.js";
 import { requireRole } from "../middlewares/roles.js";
-import AuditLog from "../models/AuditLog.js";
+import AuditLog from "../../models/AuditLog.js";
 
 const router = Router();
 
