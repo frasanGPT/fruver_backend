@@ -67,7 +67,7 @@ router.post(
       // 📌 Auditoría
       await AuditLog.create({
         usuarioId: req.user.id,
-        usuarioEmail: req.user.email || "admin",
+        usuarioEmail: "system-admin",
         accion: "CREAR_USUARIO",
         entidad: "Usuario",
         entidadId: nuevo._id.toString(),
