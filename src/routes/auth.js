@@ -1,9 +1,14 @@
 // src/routes/auth.js
 
-import { Router } from "express";
+import {
+  Router
+} from "express";
 import bcrypt from "bcryptjs";
 import Usuario from "../models/Usuario.js";
-import { signToken, assertJwtReady } from "../config/jwt.js";
+import {
+  signToken,
+  assertJwtReady
+} from "../config/jwt.js";
 
 const router = Router();
 
@@ -15,7 +20,10 @@ router.post("/login", async (req, res) => {
   try {
     assertJwtReady();
 
-    const { email, password } = req.body;
+    const {
+      email,
+      password
+    } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
@@ -24,7 +32,9 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    const usuario = await Usuario.findOne({ email }).select("+password");
+    const usuario = await Usuario.findOne({
+      email
+    }).select("+password");
 
     if (!usuario || !usuario.activo) {
       return res.status(400).json({
@@ -73,7 +83,10 @@ router.get("/dev-token", (_req, res) => {
   const isProd = env === "production";
 
   if (isProd) {
-    return res.status(404).json({ ok: false, error: "Not Found" });
+    return res.status(404).json({
+      ok: false,
+      error: "Not Found"
+    });
   }
 
   try {
@@ -84,7 +97,10 @@ router.get("/dev-token", (_req, res) => {
       rol: "admin",
     });
 
-    return res.json({ ok: true, token });
+    return res.json({
+      ok: true,
+      token
+    });
   } catch (err) {
     return res.status(500).json({
       ok: false,
@@ -92,5 +108,67 @@ router.get("/dev-token", (_req, res) => {
     });
   }
 });
+
+/* =========================
+   REGISTER
+========================= */
+
+router.post("/register", async (req, res) => {
+  try {
+    assertJwtReady();
+
+    const {
+      nombre,
+      email,
+      password,
+      rol
+    } = req.body;
+
+    if (!nombre || !email || !password) {
+      return res.status(400).json({
+        ok: false,
+        error: "Nombre, email y password son obligatorios",
+      });
+    }
+
+    const existe = await Usuario.findOne({
+      email
+    });
+
+    if (existe) {
+      return res.status(400).json({
+        ok: false,
+        error: "El usuario ya existe",
+      });
+    }
+
+    const nuevoUsuario = new Usuario({
+      nombre,
+      email,
+      password,
+      rol: rol || "empleado",
+    });
+
+    await nuevoUsuario.save();
+
+    return res.status(201).json({
+      ok: true,
+      usuario: {
+        id: nuevoUsuario._id,
+        nombre: nuevoUsuario.nombre,
+        email: nuevoUsuario.email,
+        rol: nuevoUsuario.rol,
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({
+      ok: false,
+      error: "Error en registro",
+    });
+  }
+});
+
+
+
 
 export default router;
