@@ -10,6 +10,16 @@ import {
   assertJwtReady
 } from "../config/jwt.js";
 
+import {
+  requireAuth
+} from "../middlewares/auth.js";
+import {
+  requireRole
+} from "../middlewares/roles.js";
+
+
+
+
 const router = Router();
 
 /* =========================
@@ -113,61 +123,66 @@ router.get("/dev-token", (_req, res) => {
    REGISTER
 ========================= */
 
-router.post("/register", async (req, res) => {
-  try {
-    assertJwtReady();
+router.post(
+  "/register",
+  requireAuth,
+  requireRole("admin"),
+  async (req, res) => {
 
-    const {
-      nombre,
-      email,
-      password,
-      rol
-    } = req.body;
+    try {
+      assertJwtReady();
 
-    if (!nombre || !email || !password) {
-      return res.status(400).json({
+      const {
+        nombre,
+        email,
+        password,
+        rol
+      } = req.body;
+
+      if (!nombre || !email || !password) {
+        return res.status(400).json({
+          ok: false,
+          error: "Nombre, email y password son obligatorios",
+        });
+      }
+
+      const existe = await Usuario.findOne({
+        email
+      });
+
+      if (existe) {
+        return res.status(400).json({
+          ok: false,
+          error: "El usuario ya existe",
+        });
+      }
+
+      const nuevoUsuario = new Usuario({
+        nombre,
+        email,
+        password,
+        rol: rol || "empleado",
+      });
+
+      await nuevoUsuario.save();
+
+      return res.status(201).json({
+        ok: true,
+        usuario: {
+          id: nuevoUsuario._id,
+          nombre: nuevoUsuario.nombre,
+          email: nuevoUsuario.email,
+          rol: nuevoUsuario.rol,
+        },
+      });
+    } catch (err) {
+      console.error("REGISTER ERROR:", err);
+      return res.status(500).json({
         ok: false,
-        error: "Nombre, email y password son obligatorios",
+        error: err.message,
       });
     }
-
-    const existe = await Usuario.findOne({
-      email
-    });
-
-    if (existe) {
-      return res.status(400).json({
-        ok: false,
-        error: "El usuario ya existe",
-      });
-    }
-
-    const nuevoUsuario = new Usuario({
-      nombre,
-      email,
-      password,
-      rol: rol || "empleado",
-    });
-
-    await nuevoUsuario.save();
-
-    return res.status(201).json({
-      ok: true,
-      usuario: {
-        id: nuevoUsuario._id,
-        nombre: nuevoUsuario.nombre,
-        email: nuevoUsuario.email,
-        rol: nuevoUsuario.rol,
-      },
-    });
-  } catch (err) {
-  console.error("REGISTER ERROR:", err);
-  return res.status(500).json({
-    ok: false,
-    error: err.message,
   });
-}
-});
 
 
 
