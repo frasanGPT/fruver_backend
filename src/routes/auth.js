@@ -161,11 +161,12 @@ router.post("/register", async (req, res) => {
       },
     });
   } catch (err) {
-    return res.status(500).json({
-      ok: false,
-      error: "Error en registro",
-    });
-  }
+  console.error("REGISTER ERROR:", err);
+  return res.status(500).json({
+    ok: false,
+    error: err.message,
+  });
+}
 });
 
 
