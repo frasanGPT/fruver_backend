@@ -122,22 +122,15 @@ router.get("/dev-token", (_req, res) => {
 /* =========================
    REGISTER
 ========================= */
-
 router.post(
   "/register",
   requireAuth,
   requireRole("admin"),
   async (req, res) => {
-
     try {
       assertJwtReady();
 
-      const {
-        nombre,
-        email,
-        password,
-        rol
-      } = req.body;
+      const { nombre, email, password, rol } = req.body;
 
       if (!nombre || !email || !password) {
         return res.status(400).json({
@@ -146,9 +139,15 @@ router.post(
         });
       }
 
-      const existe = await Usuario.findOne({
-        email
-      });
+      // Evitar que el admin cree otro usuario con su mismo email
+      if (email.toLowerCase() === req.user.email?.toLowerCase()) {
+        return res.status(400).json({
+          ok: false,
+          error: "No puedes registrarte nuevamente con tu propio email",
+        });
+      }
+
+      const existe = await Usuario.findOne({ email });
 
       if (existe) {
         return res.status(400).json({
@@ -161,7 +160,7 @@ router.post(
         nombre,
         email,
         password,
-        rol: rol || "empleado",
+        rol: rol || "vendedor",
       });
 
       await nuevoUsuario.save();
@@ -182,7 +181,10 @@ router.post(
         error: err.message,
       });
     }
-  });
+  }
+);
+
+
 
 
 
