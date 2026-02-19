@@ -135,9 +135,13 @@ router.patch(
   }
 );
 
+
+
+// router delete para desactivar un usuario (activo = false):
+
 router.delete(
   "/:id",
-  requireRole(["admin"]),
+  requireRole("admin"),
   async (req, res) => {
     try {
       const { id } = req.params;
@@ -164,6 +168,21 @@ router.delete(
         });
       }
 
+      // 🔐 Bloquear eliminación del último admin activo
+      if (usuario.rol === "admin" && usuario.activo) {
+        const totalAdminsActivos = await Usuario.countDocuments({
+          rol: "admin",
+          activo: true,
+        });
+
+        if (totalAdminsActivos <= 1) {
+          return res.status(403).json({
+            ok: false,
+            error: "No se puede desactivar el último administrador del sistema",
+          });
+        }
+      }
+
       usuario.activo = false;
       await usuario.save();
 
@@ -171,13 +190,17 @@ router.delete(
         ok: true,
         message: "Usuario desactivado correctamente",
       });
-    } catch {
+    } catch (err) {
       res.status(500).json({
         ok: false,
-        error: "Error al desactivar usuario",
+        error: err.message,
       });
     }
   }
 );
+
+
+
+
 
 export default router;
