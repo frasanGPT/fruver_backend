@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import Usuario from "../models/Usuario.js";
 import { requireAuth } from "../middlewares/auth.js";
 import { requireRole } from "../middlewares/roles.js";
+import AuditLog from "../models/AuditLog.js";
 
 const router = Router();
 
@@ -16,9 +17,13 @@ function isValidObjectId(id) {
 
 router.use(requireAuth);
 
+/* =========================
+   GET USUARIOS
+========================= */
+
 router.get(
   "/",
-  requireRole(["admin","supervisor"]),
+  requireRole(["admin", "supervisor"]),
   async (req, res) => {
     try {
       const usuarios = await Usuario.find({ activo: true })
@@ -39,14 +44,16 @@ router.get(
   }
 );
 
+/* =========================
+   CREAR USUARIO
+========================= */
+
 router.post(
   "/",
-  requireRole(["admin"]),
+  requireRole("admin"),
   async (req, res) => {
     try {
       const { nombre, email, password, rol } = req.body;
-
-      
 
       const nuevo = new Usuario({
         nombre,
@@ -57,13 +64,29 @@ router.post(
 
       await nuevo.save();
 
+      // 📌 Auditoría
+      await AuditLog.create({
+        usuarioId: req.user.id,
+        usuarioEmail: req.user.email || "admin",
+        accion: "CREAR_USUARIO",
+        entidad: "Usuario",
+        entidadId: nuevo._id.toString(),
+        metadata: {
+          creadoRol: nuevo.rol,
+        },
+        ip: req.ip,
+      });
+
       res.status(201).json({
         ok: true,
-        data: nuevo,
+        data: {
+          id: nuevo._id,
+          nombre: nuevo.nombre,
+          email: nuevo.email,
+          rol: nuevo.rol,
+        },
       });
     } catch (err) {
-      
-      
       res.status(500).json({
         ok: false,
         error: err.message,
@@ -72,14 +95,13 @@ router.post(
   }
 );
 
-
-
-
-
+/* =========================
+   ACTUALIZAR USUARIO
+========================= */
 
 router.patch(
   "/:id",
-  requireRole(["admin"]),
+  requireRole("admin"),
   async (req, res) => {
     try {
       const { id } = req.params;
@@ -135,9 +157,9 @@ router.patch(
   }
 );
 
-
-
-// router delete para desactivar un usuario (activo = false):
+/* =========================
+   DESACTIVAR USUARIO
+========================= */
 
 router.delete(
   "/:id",
@@ -186,6 +208,19 @@ router.delete(
       usuario.activo = false;
       await usuario.save();
 
+      // 📌 Auditoría
+      await AuditLog.create({
+        usuarioId: req.user.id,
+        usuarioEmail: req.user.email || "admin",
+        accion: "DESACTIVAR_USUARIO",
+        entidad: "Usuario",
+        entidadId: usuario._id.toString(),
+        metadata: {
+          rol: usuario.rol,
+        },
+        ip: req.ip,
+      });
+
       res.json({
         ok: true,
         message: "Usuario desactivado correctamente",
@@ -198,9 +233,5 @@ router.delete(
     }
   }
 );
-
-
-
-
 
 export default router;
