@@ -11,25 +11,39 @@ router.use(requireAuth);
 router.use(requireRole("admin"));
 
 /* =========================
-   GET AUDIT LOGS
+   GET AUDIT LOGS (PAGINADO)
 ========================= */
 
 router.get("/", async (req, res) => {
   try {
-    const { usuarioId, accion, limit = 50 } = req.query;
+    const {
+      usuarioId,
+      accion,
+      page = 1,
+      limit = 10,
+    } = req.query;
+
+    const pageNumber = Math.max(parseInt(page), 1);
+    const limitNumber = Math.min(Math.max(parseInt(limit), 1), 100); // máximo 100
 
     const filtro = {};
 
     if (usuarioId) filtro.usuarioId = usuarioId;
     if (accion) filtro.accion = accion;
 
+    const total = await AuditLog.countDocuments(filtro);
+
     const logs = await AuditLog.find(filtro)
       .sort({ createdAt: -1 })
-      .limit(Number(limit));
+      .skip((pageNumber - 1) * limitNumber)
+      .limit(limitNumber);
 
     res.json({
       ok: true,
-      count: logs.length,
+      total,
+      page: pageNumber,
+      totalPages: Math.ceil(total / limitNumber),
+      limit: limitNumber,
       data: logs,
     });
   } catch (err) {
