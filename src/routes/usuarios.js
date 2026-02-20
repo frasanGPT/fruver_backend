@@ -5,7 +5,7 @@ import mongoose from "mongoose";
 import Usuario from "../models/Usuario.js";
 import { requireAuth } from "../middlewares/auth.js";
 import { requireRole } from "../middlewares/roles.js";
-import AuditLog from "../../models/AuditLog.js";
+import AuditLog from "../models/AuditLog.js";
 
 const router = Router();
 
@@ -65,6 +65,8 @@ router.post(
 
       await nuevo.save();
       console.log("AUDIT BLOCK REACHED");
+
+
       // 📌 Auditoría
       try {
         const ejecutor = await Usuario.findById(req.user.id).select("+email");
