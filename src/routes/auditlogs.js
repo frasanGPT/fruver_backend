@@ -11,7 +11,7 @@ router.use(requireAuth);
 router.use(requireRole("admin"));
 
 /* =========================
-   GET AUDIT LOGS (PAGINADO)
+   GET AUDIT LOGS (PAGINADO + FECHA)
 ========================= */
 
 router.get("/", async (req, res) => {
@@ -19,17 +19,36 @@ router.get("/", async (req, res) => {
     const {
       usuarioId,
       accion,
+      from,
+      to,
       page = 1,
       limit = 10,
     } = req.query;
 
     const pageNumber = Math.max(parseInt(page), 1);
-    const limitNumber = Math.min(Math.max(parseInt(limit), 1), 100); // máximo 100
+    const limitNumber = Math.min(Math.max(parseInt(limit), 1), 100);
 
     const filtro = {};
 
     if (usuarioId) filtro.usuarioId = usuarioId;
     if (accion) filtro.accion = accion;
+
+    // 🔥 Filtro por rango de fecha
+    if (from || to) {
+      filtro.createdAt = {};
+
+      if (from) {
+        const fromDate = new Date(from);
+        fromDate.setHours(0, 0, 0, 0);
+        filtro.createdAt.$gte = fromDate;
+      }
+
+      if (to) {
+        const toDate = new Date(to);
+        toDate.setHours(23, 59, 59, 999);
+        filtro.createdAt.$lte = toDate;
+      }
+    }
 
     const total = await AuditLog.countDocuments(filtro);
 
