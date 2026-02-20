@@ -10,54 +10,44 @@ import auditRoutes from "./routes/auditlogs.js";
 
 dotenv.config();
 
-console.log("🔥 SERVER FILE VERSION: 2026-02-20-C 🔥");
+console.log("🔥 SERVER FILE VERSION: 2026-02-20-D 🔥");
 
 const app = express();
-
 app.use(express.json());
 
 /* =========================
    HEALTH CHECK
 ========================= */
-
 app.get("/", (_req, res) => {
-  res.json({
-    ok: true,
-    message: "API Fruver funcionando",
-  });
+  res.json({ ok: true, message: "API Fruver funcionando" });
 });
 
 /* =========================
-   DEBUG ROUTE
+   DEBUG
 ========================= */
-
 app.get("/debug-routes", (_req, res) => {
-  res.json({
-    auditMounted: true,
-  });
+  res.json({ auditMounted: true });
 });
 
 /* =========================
    ROUTES
 ========================= */
-
 app.use("/api/auth", authRoutes);
 app.use("/api/usuarios", usuariosRoutes);
 app.use("/api/auditlogs", auditRoutes);
 
 /* =========================
-   SERVER START
+   START SERVER FIRST
 ========================= */
 
 const PORT = process.env.PORT || 3000;
 
-// 🔥 Abrir puerto primero (Render friendly)
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);
 });
 
 /* =========================
-   MONGODB CONNECTION
+   CONNECT MONGO AFTER
 ========================= */
 
 if (!process.env.MONGODB_URI) {
@@ -65,10 +55,6 @@ if (!process.env.MONGODB_URI) {
 } else {
   mongoose
     .connect(process.env.MONGODB_URI)
-    .then(() => {
-      console.log("MongoDB conectado");
-    })
-    .catch((err) => {
-      console.error("Error conectando MongoDB:", err);
-    });
+    .then(() => console.log("MongoDB conectado"))
+    .catch((err) => console.error("Error conectando MongoDB:", err));
 }
