@@ -65,7 +65,28 @@ router.post("/login", async (req, res) => {
     const token = signToken({
       id: usuario._id.toString(),
       rol: usuario.rol,
+      email: usuario.email, // 👈 ahora incluimos email en JWT
     });
+
+    // 📌 Auditoría LOGIN
+    try {
+      const AuditLog = (await import("../models/AuditLog.js")).default;
+
+      await AuditLog.create({
+        usuarioId: usuario._id,
+        usuarioEmail: usuario.email,
+        accion: "LOGIN",
+        entidad: "Usuario",
+        entidadId: usuario._id.toString(),
+        metadata: {
+          rol: usuario.rol,
+        },
+        ip: req.ip,
+        userAgent: req.headers["user-agent"] || "unknown",
+      });
+    } catch (err) {
+      console.error("AUDIT LOGIN ERROR:", err);
+    }
 
     return res.json({
       ok: true,
@@ -77,12 +98,14 @@ router.post("/login", async (req, res) => {
       },
     });
   } catch (err) {
+    console.error("LOGIN ERROR:", err);
     return res.status(500).json({
       ok: false,
       error: "Error en login",
     });
   }
 });
+
 
 /* =========================
    DEV TOKEN (solo local)
@@ -190,6 +213,7 @@ router.post(
       });
 
       await nuevoUsuario.save();
+
 
       return res.status(201).json({
         ok: true,
