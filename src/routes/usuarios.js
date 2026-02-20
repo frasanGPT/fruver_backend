@@ -64,7 +64,7 @@ router.post(
       });
 
       await nuevo.save();
-
+      console.log("AUDIT BLOCK REACHED");
       // 📌 Auditoría
       try {
         const ejecutor = await Usuario.findById(req.user.id).select("+email");
