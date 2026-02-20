@@ -27,6 +27,15 @@ app.use("/api/usuarios", usuariosRoutes);
 app.use("/api/auditlogs", auditRoutes);
 
 
+app.get("/debug-routes", (_req, res) => {
+  res.json({
+    auditMounted: true
+  });
+});
+
+
+
+
 if (!process.env.MONGODB_URI) {
   console.error("MONGODB_URI no está definida");
   process.exit(1);
