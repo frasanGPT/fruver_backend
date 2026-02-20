@@ -6,6 +6,8 @@ import dotenv from "dotenv";
 
 import authRoutes from "./routes/auth.js";
 import usuariosRoutes from "./routes/usuarios.js";
+import auditRoutes from "./routes/auditlogs.js";
+
 
 dotenv.config();
 
@@ -22,6 +24,8 @@ app.get("/", (_req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/usuarios", usuariosRoutes);
+app.use("/api/auditlogs", auditRoutes);
+
 
 if (!process.env.MONGODB_URI) {
   console.error("MONGODB_URI no está definida");
