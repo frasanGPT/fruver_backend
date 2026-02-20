@@ -1,10 +1,16 @@
 // src/routes/usuarios.js
 
-import { Router } from "express";
+import {
+  Router
+} from "express";
 import mongoose from "mongoose";
 import Usuario from "../models/Usuario.js";
-import { requireAuth } from "../middlewares/auth.js";
-import { requireRole } from "../middlewares/roles.js";
+import {
+  requireAuth
+} from "../middlewares/auth.js";
+import {
+  requireRole
+} from "../middlewares/roles.js";
 import AuditLog from "../models/AuditLog.js";
 
 const router = Router();
@@ -26,9 +32,13 @@ router.get(
   requireRole(["admin", "supervisor"]),
   async (req, res) => {
     try {
-      const usuarios = await Usuario.find({ activo: true })
+      const usuarios = await Usuario.find({
+          activo: true
+        })
         .select("-password")
-        .sort({ createdAt: -1 });
+        .sort({
+          createdAt: -1
+        });
 
       res.json({
         ok: true,
@@ -54,7 +64,12 @@ router.post(
   requireRole("admin"),
   async (req, res) => {
     try {
-      const { nombre, email, password, rol } = req.body;
+      const {
+        nombre,
+        email,
+        password,
+        rol
+      } = req.body;
 
       const nuevo = new Usuario({
         nombre,
@@ -66,25 +81,18 @@ router.post(
       await nuevo.save();
       console.log("AUDIT BLOCK REACHED");
 
-
-      // 📌 Auditoría
-      try {
-        const ejecutor = await Usuario.findById(req.user.id).select("+email");
-
-        await AuditLog.create({
-          usuarioId: ejecutor._id,
-          usuarioEmail: ejecutor.email,
-          accion: "CREAR_USUARIO",
-          entidad: "Usuario",
-          entidadId: nuevo._id.toString(),
-          metadata: {
-            creadoRol: nuevo.rol,
-          },
-          ip: req.ip,
-        });
-      } catch (err) {
-        console.error("AUDIT CREATE ERROR:", err);
-      }
+      // 📌 Auditoría (simplificada y correcta)
+      await AuditLog.create({
+        usuarioId: req.user.id,
+        usuarioEmail: req.user.email || "admin",
+        accion: "CREAR_USUARIO",
+        entidad: "Usuario",
+        entidadId: nuevo._id.toString(),
+        metadata: {
+          creadoRol: nuevo.rol,
+        },
+        ip: req.ip,
+      });
 
       res.status(201).json({
         ok: true,
@@ -114,7 +122,9 @@ router.patch(
   requireRole("admin"),
   async (req, res) => {
     try {
-      const { id } = req.params;
+      const {
+        id
+      } = req.params;
 
       if (!isValidObjectId(id)) {
         return res.status(400).json({
@@ -123,7 +133,10 @@ router.patch(
         });
       }
 
-      const { rol, activo } = req.body;
+      const {
+        rol,
+        activo
+      } = req.body;
 
       const usuario = await Usuario.findById(id);
       if (!usuario) {
@@ -177,7 +190,9 @@ router.delete(
   requireRole("admin"),
   async (req, res) => {
     try {
-      const { id } = req.params;
+      const {
+        id
+      } = req.params;
 
       if (!isValidObjectId(id)) {
         return res.status(400).json({
