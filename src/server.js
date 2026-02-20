@@ -35,6 +35,9 @@ app.get("/debug-routes", (_req, res) => {
 
 
 
+console.log("SERVER FILE VERSION: 2026-02-20-A");
+
+
 
 if (!process.env.MONGODB_URI) {
   console.error("MONGODB_URI no está definida");
