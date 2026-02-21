@@ -8,7 +8,7 @@ import { signToken, assertJwtReady } from "../config/jwt.js";
 
 const router = Router();
 
-console.log("🔥 AUTH FILE VERSION: LOGIN_FAIL_AUDIT_V2 🔥");
+console.log("🔥 AUTH FILE VERSION: LOGIN_FAIL_AUDIT_V3 🔥");
 
 /* =========================
    LOGIN
@@ -27,25 +27,29 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    const emailNormalizado = email.toLowerCase();
+    const emailNormalizado = email.toLowerCase().trim();
 
     const usuario = await Usuario.findOne({
       email: emailNormalizado,
     }).select("+password");
 
-    // ❌ Usuario no existe
+    /* =========================
+       ❌ USUARIO NO EXISTE
+    ========================= */
     if (!usuario) {
-      await AuditLog.create({
-        usuarioId: null,
-        usuarioEmail: emailNormalizado,
-        accion: "LOGIN_FALLIDO",
-        entidad: "Usuario",
-        entidadId: null,
-        metadata: {
-          motivo: "USUARIO_NO_EXISTE",
-        },
-        ip: req.ip,
-      });
+      try {
+        await AuditLog.create({
+          usuarioId: null,
+          usuarioEmail: emailNormalizado,
+          accion: "LOGIN_FALLIDO",
+          entidad: "Usuario",
+          entidadId: null,
+          metadata: { motivo: "USUARIO_NO_EXISTE" },
+          ip: req.ip,
+        });
+      } catch (auditErr) {
+        console.error("AUDIT ERROR (USER NOT FOUND):", auditErr.message);
+      }
 
       return res.status(400).json({
         ok: false,
@@ -53,19 +57,23 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // ❌ Usuario inactivo
+    /* =========================
+       ❌ USUARIO INACTIVO
+    ========================= */
     if (!usuario.activo) {
-      await AuditLog.create({
-        usuarioId: usuario._id,
-        usuarioEmail: usuario.email,
-        accion: "LOGIN_FALLIDO",
-        entidad: "Usuario",
-        entidadId: usuario._id.toString(),
-        metadata: {
-          motivo: "USUARIO_INACTIVO",
-        },
-        ip: req.ip,
-      });
+      try {
+        await AuditLog.create({
+          usuarioId: usuario._id,
+          usuarioEmail: usuario.email,
+          accion: "LOGIN_FALLIDO",
+          entidad: "Usuario",
+          entidadId: usuario._id.toString(),
+          metadata: { motivo: "USUARIO_INACTIVO" },
+          ip: req.ip,
+        });
+      } catch (auditErr) {
+        console.error("AUDIT ERROR (USER INACTIVE):", auditErr.message);
+      }
 
       return res.status(400).json({
         ok: false,
@@ -75,19 +83,23 @@ router.post("/login", async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, usuario.password);
 
-    // ❌ Password incorrecto
+    /* =========================
+       ❌ PASSWORD INCORRECTO
+    ========================= */
     if (!isMatch) {
-      await AuditLog.create({
-        usuarioId: usuario._id,
-        usuarioEmail: usuario.email,
-        accion: "LOGIN_FALLIDO",
-        entidad: "Usuario",
-        entidadId: usuario._id.toString(),
-        metadata: {
-          motivo: "PASSWORD_INCORRECTO",
-        },
-        ip: req.ip,
-      });
+      try {
+        await AuditLog.create({
+          usuarioId: usuario._id,
+          usuarioEmail: usuario.email,
+          accion: "LOGIN_FALLIDO",
+          entidad: "Usuario",
+          entidadId: usuario._id.toString(),
+          metadata: { motivo: "PASSWORD_INCORRECTO" },
+          ip: req.ip,
+        });
+      } catch (auditErr) {
+        console.error("AUDIT ERROR (BAD PASSWORD):", auditErr.message);
+      }
 
       return res.status(400).json({
         ok: false,
@@ -95,24 +107,28 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // ✅ Login exitoso
+    /* =========================
+       ✅ LOGIN EXITOSO
+    ========================= */
     const token = signToken({
       id: usuario._id.toString(),
       rol: usuario.rol,
       email: usuario.email,
     });
 
-    await AuditLog.create({
-      usuarioId: usuario._id,
-      usuarioEmail: usuario.email,
-      accion: "LOGIN",
-      entidad: "Usuario",
-      entidadId: usuario._id.toString(),
-      metadata: {
-        rol: usuario.rol,
-      },
-      ip: req.ip,
-    });
+    try {
+      await AuditLog.create({
+        usuarioId: usuario._id,
+        usuarioEmail: usuario.email,
+        accion: "LOGIN",
+        entidad: "Usuario",
+        entidadId: usuario._id.toString(),
+        metadata: { rol: usuario.rol },
+        ip: req.ip,
+      });
+    } catch (auditErr) {
+      console.error("AUDIT ERROR (LOGIN SUCCESS):", auditErr.message);
+    }
 
     return res.json({
       ok: true,
@@ -123,8 +139,9 @@ router.post("/login", async (req, res) => {
         rol: usuario.rol,
       },
     });
+
   } catch (err) {
-    console.error("LOGIN ERROR:", err);
+    console.error("LOGIN FATAL ERROR:", err);
     return res.status(500).json({
       ok: false,
       error: "Error en login",
