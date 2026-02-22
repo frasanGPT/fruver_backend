@@ -8,7 +8,20 @@ import { signToken, assertJwtReady } from "../config/jwt.js";
 
 const router = Router();
 
-console.log("🔥 AUTH FILE VERSION: LOGIN_FAIL_AUDIT_V3 🔥");
+console.log("🔥 AUTH FILE VERSION: LOGIN_FAIL_AUDIT_V4_IPFIX 🔥");
+
+// Captura IP real detrás de Cloudflare/Render
+function getClientIp(req) {
+  const cf = req.get("cf-connecting-ip");
+  if (cf) return cf.trim();
+
+  const xff = req.get("x-forwarded-for");
+  if (xff) return xff.split(",")[0].trim();
+
+  // Con app.set("trust proxy", 1) esto debería ser la IP real
+  const ip = req.ip || "";
+  return ip.replace(/^::ffff:/, "");
+}
 
 /* =========================
    LOGIN
@@ -45,7 +58,7 @@ router.post("/login", async (req, res) => {
           entidad: "Usuario",
           entidadId: null,
           metadata: { motivo: "USUARIO_NO_EXISTE" },
-          ip: req.ip,
+          ip: getClientIp(req),
         });
       } catch (auditErr) {
         console.error("AUDIT ERROR (USER NOT FOUND):", auditErr.message);
@@ -69,7 +82,7 @@ router.post("/login", async (req, res) => {
           entidad: "Usuario",
           entidadId: usuario._id.toString(),
           metadata: { motivo: "USUARIO_INACTIVO" },
-          ip: req.ip,
+          ip: getClientIp(req),
         });
       } catch (auditErr) {
         console.error("AUDIT ERROR (USER INACTIVE):", auditErr.message);
@@ -95,7 +108,7 @@ router.post("/login", async (req, res) => {
           entidad: "Usuario",
           entidadId: usuario._id.toString(),
           metadata: { motivo: "PASSWORD_INCORRECTO" },
-          ip: req.ip,
+          ip: getClientIp(req),
         });
       } catch (auditErr) {
         console.error("AUDIT ERROR (BAD PASSWORD):", auditErr.message);
@@ -124,7 +137,7 @@ router.post("/login", async (req, res) => {
         entidad: "Usuario",
         entidadId: usuario._id.toString(),
         metadata: { rol: usuario.rol },
-        ip: req.ip,
+        ip: getClientIp(req),
       });
     } catch (auditErr) {
       console.error("AUDIT ERROR (LOGIN SUCCESS):", auditErr.message);
@@ -139,7 +152,6 @@ router.post("/login", async (req, res) => {
         rol: usuario.rol,
       },
     });
-
   } catch (err) {
     console.error("LOGIN FATAL ERROR:", err);
     return res.status(500).json({

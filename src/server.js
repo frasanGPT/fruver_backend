@@ -10,9 +10,16 @@ import auditRoutes from "./routes/auditlogs.js";
 
 dotenv.config();
 
-console.log("🔥 SERVER FILE VERSION: 2026-02-20-D 🔥");
+console.log("🔥 SERVER FILE VERSION: 2026-02-22-E 🔥");
 
 const app = express();
+
+/**
+ * Trust proxy (Render/Cloudflare) — necesario para req.ip / X-Forwarded-For
+ * Debe ir ANTES de middlewares y rutas.
+ */
+app.set("trust proxy", 1);
+
 app.use(express.json());
 
 /* =========================
@@ -39,7 +46,6 @@ app.use("/api/auditlogs", auditRoutes);
 /* =========================
    START SERVER FIRST
 ========================= */
-
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
@@ -49,7 +55,6 @@ app.listen(PORT, () => {
 /* =========================
    CONNECT MONGO AFTER
 ========================= */
-
 if (!process.env.MONGODB_URI) {
   console.error("MONGODB_URI no está definida");
 } else {
