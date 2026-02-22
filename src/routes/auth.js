@@ -1,10 +1,15 @@
 // src/routes/auth.js
 
-import { Router } from "express";
+import {
+  Router
+} from "express";
 import bcrypt from "bcryptjs";
 import Usuario from "../models/Usuario.js";
 import AuditLog from "../models/AuditLog.js";
-import { signToken, assertJwtReady } from "../config/jwt.js";
+import {
+  signToken,
+  assertJwtReady
+} from "../config/jwt.js";
 
 const router = Router();
 
@@ -31,7 +36,18 @@ router.post("/login", async (req, res) => {
   try {
     assertJwtReady();
 
-    const { email, password } = req.body;
+    const {
+      email,
+      password
+    } = req.body;
+
+    // ✅ Validación de tipos (evita 500 por toLowerCase/compare con tipos inválidos)
+    if (typeof email !== "string" || typeof password !== "string") {
+      return res.status(400).json({
+        ok: false,
+        error: "Email y password deben ser texto",
+      });
+    }
 
     if (!email || !password) {
       return res.status(400).json({
@@ -57,7 +73,9 @@ router.post("/login", async (req, res) => {
           accion: "LOGIN_FALLIDO",
           entidad: "Usuario",
           entidadId: null,
-          metadata: { motivo: "USUARIO_NO_EXISTE" },
+          metadata: {
+            motivo: "USUARIO_NO_EXISTE"
+          },
           ip: getClientIp(req),
         });
       } catch (auditErr) {
@@ -81,7 +99,9 @@ router.post("/login", async (req, res) => {
           accion: "LOGIN_FALLIDO",
           entidad: "Usuario",
           entidadId: usuario._id.toString(),
-          metadata: { motivo: "USUARIO_INACTIVO" },
+          metadata: {
+            motivo: "USUARIO_INACTIVO"
+          },
           ip: getClientIp(req),
         });
       } catch (auditErr) {
@@ -107,7 +127,9 @@ router.post("/login", async (req, res) => {
           accion: "LOGIN_FALLIDO",
           entidad: "Usuario",
           entidadId: usuario._id.toString(),
-          metadata: { motivo: "PASSWORD_INCORRECTO" },
+          metadata: {
+            motivo: "PASSWORD_INCORRECTO"
+          },
           ip: getClientIp(req),
         });
       } catch (auditErr) {
@@ -136,7 +158,9 @@ router.post("/login", async (req, res) => {
         accion: "LOGIN",
         entidad: "Usuario",
         entidadId: usuario._id.toString(),
-        metadata: { rol: usuario.rol },
+        metadata: {
+          rol: usuario.rol
+        },
         ip: getClientIp(req),
       });
     } catch (auditErr) {
