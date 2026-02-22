@@ -1,3 +1,8 @@
 node_modules/
 .env
 dist/
+
+# local diagnostics
+estructura_real.txt
+imports_reales.txt
+imports_relativos.txt
